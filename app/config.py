@@ -17,12 +17,12 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./crawler.db"
     
     # OpenSearch
-    OPENSEARCH_HOST: str = "localhost"
-    OPENSEARCH_PORT: int = 9200
-    OPENSEARCH_SCHEME: str = "http"
+    OPENSEARCH_HOST: str = "search-srisearch-4cxrdo5pnm4kfyg7c2p3mr3boy.us-east-1.es.amazonaws.com"
+    OPENSEARCH_PORT: int = 443
+    OPENSEARCH_SCHEME: str = "https"
     OPENSEARCH_USER: Optional[str] = None
     OPENSEARCH_PASSWORD: Optional[str] = None
-    OPENSEARCH_VERIFY_CERTS: bool = False
+    OPENSEARCH_VERIFY_CERTS: bool = True
     
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
