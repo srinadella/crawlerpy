@@ -27,7 +27,8 @@ class OpenSearchClient:
                     'port': settings.OPENSEARCH_PORT,
                     'scheme': settings.OPENSEARCH_SCHEME
                 }],
-                basic_auth=auth,
+                http_auth=auth,
+                use_ssl=True,
                 verify_certs=settings.OPENSEARCH_VERIFY_CERTS,
                 ssl_show_warn=False
             )
@@ -68,6 +69,7 @@ class OpenSearchClient:
                             'port': settings.OPENSEARCH_PORT,
                             'scheme': settings.OPENSEARCH_SCHEME
                         }],
+                        use_ssl=True,
                         verify_certs=settings.OPENSEARCH_VERIFY_CERTS,
                         ssl_show_warn=False
                     )
