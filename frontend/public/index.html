@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Crawler Administration</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Light mode colors */
+            --primary-color: #1f2937;
+            --primary-light: #6366f1;
+            --accent-color: #06b6d4;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --bg-light: #f9fafb;
+            --bg-white: #ffffff;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --border-color: #e5e7eb;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Dark mode */
+        html[data-theme="dark"],
+        html.dark {
+            --primary-color: #e5e7eb;
+            --primary-light: #818cf8;
+            --accent-color: #22d3ee;
+            --success-color: #34d399;
+            --warning-color: #fbbf24;
+            --danger-color: #f87171;
+            --bg-light: #1f2937;
+            --bg-white: #111827;
+            --text-primary: #f3f4f6;
+            --text-secondary: #d1d5db;
+            --border-color: #374151;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.6);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: var(--bg-light);
+            min-height: 100vh;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        #app {
+            min-height: 100vh;
+        }
+
+        /* Navigation Bar - Apple Style */
+        .navbar {
+            background: var(--bg-white);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-sm);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar-brand {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .navbar-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        /* Theme Selector */
+        .theme-selector {
+            display: flex;
+            gap: 0.5rem;
+            background: var(--bg-light);
+            padding: 0.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .theme-btn {
+            background: none;
+            border: none;
+            padding: 0.5rem 0.75rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            box-shadow: none;
+        }
+
+        .theme-btn:hover {
+            background: var(--border-color);
+            transform: none;
+            box-shadow: none;
+        }
+
+        .theme-btn.active {
+            background: var(--primary-light);
+            color: white;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .navbar-menu {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .navbar-menu a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 0.625rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .navbar-menu a:hover {
+            background: var(--bg-light);
+            color: var(--text-primary);
+        }
+
+        .navbar-menu a.active {
+            background: var(--primary-light);
+            color: white;
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        /* Cards - Material Design + Apple */
+        .card {
+            background: var(--bg-white);
+            border-radius: 12px;
+            box-shadow: var(--shadow-md);
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border-color);
+            transition: all 0.2s ease;
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-lg);
+        }
+
+        .card-title {
+            font-size: 1.375rem;
+            margin-bottom: 1.5rem;
+            color: var(--text-primary);
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.625rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: all 0.2s ease;
+            background: var(--bg-white);
+            color: var(--text-primary);
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+            background: var(--bg-white);
+        }
+
+        /* Buttons - Material Design with Ripple Effect */
+        button {
+            background: var(--primary-light);
+            color: white;
+            padding: 0.875rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        button:hover {
+            background: #4f46e5;
+            box-shadow: var(--shadow-md);
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.danger {
+            background: var(--danger-color);
+        }
+
+        button.danger:hover {
+            background: #dc2626;
+            box-shadow: var(--shadow-md);
+        }
+
+        button.secondary {
+            background: var(--text-secondary);
+        }
+
+        button.secondary:hover {
+            background: #4b5563;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        /* Table - Material Design */
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .table th {
+            background: var(--bg-light);
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .table td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        .table tr:hover {
+            background: var(--bg-light);
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 0.375rem 0.875rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .badge-success {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success-color);
+        }
+
+        .badge-warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning-color);
+        }
+
+        .badge-danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger-color);
+        }
+
+        .badge-info {
+            background: rgba(6, 182, 212, 0.1);
+            color: var(--accent-color);
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid;
+            animation: slideInDown 0.3s ease;
+        }
+
+        @keyframes slideInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success-color);
+            border-left-color: var(--success-color);
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger-color);
+            border-left-color: var(--danger-color);
+        }
+
+        .alert-info {
+            background: rgba(6, 182, 212, 0.1);
+            color: var(--accent-color);
+            border-left-color: var(--accent-color);
+        }
+
+        /* Grid */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        /* Stat Boxes */
+        .stat-box {
+            background: var(--bg-white);
+            border: 1px solid var(--border-color);
+            padding: 2rem;
+            border-radius: 12px;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .stat-box:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent-color) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        /* Login */
+        .login-container {
+            max-width: 420px;
+            margin: 8rem auto 2rem;
+            background: var(--bg-white);
+            padding: 3rem 2rem;
+            border-radius: 16px;
+            box-shadow: var(--shadow-xl);
+            border: 1px solid var(--border-color);
+        }
+
+        .login-title {
+            text-align: center;
+            margin-bottom: 2.5rem;
+            font-size: 1.75rem;
+            color: var(--text-primary);
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+
+        .login-subtitle {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 3rem 2rem;
+        }
+
+        .spinner {
+            border: 3px solid var(--bg-light);
+            border-top: 3px solid var(--primary-light);
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-white);
+            padding: 2.5rem;
+            border-radius: 16px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-xl);
+            border: 1px solid var(--border-color);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: var(--text-primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+            padding: 0.5rem;
+            width: auto;
+            transition: color 0.2s;
+        }
+
+        .modal-close:hover {
+            color: var(--text-primary);
+        }
+
+        /* Progress Bar */
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: var(--bg-light);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-light) 0%, var(--accent-color) 100%);
+            transition: width 0.3s ease;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 1.5rem;
+        }
+
+        .tab {
+            padding: 1rem 0;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            font-weight: 500;
+            position: relative;
+        }
+
+        .tab:hover {
+            color: var(--text-primary);
+        }
+        .tab {
+            padding: 1rem 0;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            font-weight: 500;
+            position: relative;
+        }
+
+        .tab:hover {
+            color: var(--text-primary);
+        }
+
+        .tab.active {
+            color: var(--primary-light);
+            border-bottom-color: var(--primary-light);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.2s ease;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .navbar-menu {
+                flex-wrap: wrap;
+            }
+
+            .card {
+                padding: 1.5rem;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .table {
+                font-size: 0.875rem;
+            }
+
+            .table th, .table td {
+                padding: 0.75rem 0.5rem;
+            }
+
+            .login-container {
+                margin: 2rem auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Login View -->
+        <div id="login-view" class="login-container">
+            <div style="position: absolute; top: 2rem; right: 2rem;">
+                <div class="theme-selector">
+                    <button class="theme-btn" id="theme-light" onclick="setTheme('light')" title="Light Mode">☀️</button>
+                    <button class="theme-btn" id="theme-auto" onclick="setTheme('auto')" title="System Default">🖥️</button>
+                    <button class="theme-btn" id="theme-dark" onclick="setTheme('dark')" title="Dark Mode">🌙</button>
+                </div>
+            </div>
+            <div class="login-title">🌐 Web Crawler</div>
+            <div class="login-subtitle">Administration Dashboard</div>
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="username" placeholder="admin" autocomplete="username">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="password" placeholder="admin123" autocomplete="current-password">
+            </div>
+            <button onclick="appState.login()" style="width: 100%; margin-top: 1.5rem;">Login</button>
+            <div id="login-error" class="alert alert-error hidden" style="margin-top: 1rem;"></div>
+        </div>
+
+        <!-- Main App View -->
+        <div id="main-view" class="hidden">
+            <!-- Navigation Bar -->
+            <div class="navbar">
+                <div class="navbar-brand">
+                    <span>🌐 Web Crawler Admin</span>
+                </div>
+                <div class="navbar-menu">
+                    <a onclick="appState.navigate('dashboard')" id="nav-dashboard">📊 Dashboard</a>
+                    <a onclick="appState.navigate('crawlers')" id="nav-crawlers">🔍 Crawlers</a>
+                    <a onclick="appState.navigate('jobs')" id="nav-jobs">⚙️ Jobs</a>
+                    <a onclick="appState.navigate('search')" id="nav-search">🔎 Search</a>
+                    <a onclick="appState.navigate('admin')" id="nav-admin">⚡ Admin</a>
+                </div>
+                <div class="navbar-right">
+                    <div class="theme-selector">
+                        <button class="theme-btn" id="theme-light" onclick="setTheme('light')" title="Light Mode">☀️</button>
+                        <button class="theme-btn" id="theme-auto" onclick="setTheme('auto')" title="System Default">🖥️</button>
+                        <button class="theme-btn" id="theme-dark" onclick="setTheme('dark')" title="Dark Mode">🌙</button>
+                    </div>
+                    <a onclick="appState.logout()" style="cursor: pointer; text-decoration: none;">🚪 Logout</a>
+                </div>
+            </div>
+
+            <div class="container">
+                <!-- Dashboard View -->
+                <div id="dashboard-view" class="view hidden">
+                    <div class="card">
+                        <div class="card-title">Dashboard</div>
+                        <div class="grid">
+                            <div class="stat-box">
+                                <div class="stat-value" id="crawler-count">0</div>
+                                <div class="stat-label">Crawlers</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-value" id="job-count">0</div>
+                                <div class="stat-label">Jobs</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-value" id="user-count">0</div>
+                                <div class="stat-label">Users</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-value" id="storage-used">0 MB</div>
+                                <div class="stat-label">Storage</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Crawlers View -->
+                <div id="crawlers-view" class="view hidden">
+                    <div class="card">
+                        <div class="card-title">
+                            Crawler Configurations
+                            <button onclick="appState.openCreateCrawlerModal()" style="float: right;">+ New Crawler</button>
+                        </div>
+                        <table class="table" id="crawlers-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Description</th>
+                                    <th>Status</th>
+                                    <th>Index</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="crawlers-list">
+                                <tr><td colspan="5" style="text-align: center; padding: 2rem;">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Jobs View -->
+                <div id="jobs-view" class="view hidden">
+                    <div class="card">
+                        <div class="card-title">Crawl Jobs</div>
+                        <table class="table" id="jobs-table">
+                            <thead>
+                                <tr>
+                                    <th>Job ID</th>
+                                    <th>Crawler</th>
+                                    <th>Status</th>
+                                    <th>Progress</th>
+                                    <th>URLs Crawled</th>
+                                    <th>Documents</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="jobs-list">
+                                <tr><td colspan="7" style="text-align: center; padding: 2rem;">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Search View -->
+                <div id="search-view" class="view hidden">
+                    <div class="card">
+                        <div class="card-title">Search Indexed Documents</div>
+                        <div class="form-group">
+                            <label>Search Query</label>
+                            <input type="text" id="search-input" placeholder="Enter search terms...">
+                        </div>
+                        <div class="form-group">
+                            <label>Content Type</label>
+                            <select id="search-type">
+                                <option value="">All Types</option>
+                                <option value="html">HTML</option>
+                                <option value="pdf">PDF</option>
+                                <option value="docx">Word Document</option>
+                            </select>
+                        </div>
+                        <button onclick="appState.search()">Search</button>
+                        <div id="search-results" style="margin-top: 2rem;">
+                            <div id="search-results-list"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Admin View -->
+                <div id="admin-view" class="view hidden">
+                    <div class="card">
+                        <div class="card-title">System Administration</div>
+                        <div class="tabs">
+                            <button class="tab active" onclick="appState.switchAdminTab('system')">System</button>
+                            <button class="tab" onclick="appState.switchAdminTab('users')">Users</button>
+                            <button class="tab" onclick="appState.switchAdminTab('indices')">Indices</button>
+                            <button class="tab" onclick="appState.switchAdminTab('collections')">Collections</button>
+                        </div>
+
+                        <!-- System Tab -->
+                        <div id="system-tab" class="tab-content active">
+                            <div id="system-stats"></div>
+                        </div>
+
+                        <!-- Users Tab -->
+                        <div id="users-tab" class="tab-content">
+                            <button onclick="appState.openCreateUserModal()" style="margin-bottom: 1rem;">+ New User</button>
+                            <table class="table" id="users-table">
+                                <thead>
+                                    <tr>
+                                        <th>Username</th>
+                                        <th>Email</th>
+                                        <th>Roles</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="users-list">
+                                    <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Indices Tab -->
+                        <div id="indices-tab" class="tab-content">
+                            <table class="table" id="indices-table">
+                                <thead>
+                                    <tr>
+                                        <th>Index Name</th>
+                                        <th>Documents</th>
+                                        <th>Size</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="indices-list">
+                                    <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Collections Tab -->
+                        <div id="collections-tab" class="tab-content">
+                            <table class="table" id="collections-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Documents</th>
+                                        <th>Size</th>
+                                        <th>Created</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="collections-list">
+                                    <tr><td colspan="5" style="text-align: center;">Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Create Crawler Modal -->
+            <div id="crawler-modal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <span id="modal-title">New Crawler</span>
+                        <button class="modal-close" onclick="appState.closeCrawlerModal()">×</button>
+                    </div>
+                    <form onsubmit="appState.saveCrawler(event)">
+                        <div class="form-group">
+                            <label>Name</label>
+                            <input type="text" id="crawler-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Description</label>
+                            <textarea id="crawler-description"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Seed URLs (one per line)</label>
+                            <textarea id="crawler-seed-urls" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Allowed Domains (one per line)</label>
+                            <textarea id="crawler-allowed-domains"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Max Depth</label>
+                            <input type="number" id="crawler-max-depth" value="2" min="1" max="10">
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="crawler-extract-pdfs" checked> Extract PDFs
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="crawler-extract-docx" checked> Extract Word Documents
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="crawler-follow-sitemap" checked> Follow Sitemap
+                            </label>
+                        </div>
+                        <div class="form-group" style="display: flex; gap: 1rem;">
+                            <button type="submit">Save</button>
+                            <button type="button" class="secondary" onclick="appState.closeCrawlerModal()">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/app.js"></script>
+</body>
+</html>
