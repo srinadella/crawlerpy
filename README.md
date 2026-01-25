@@ -39,6 +39,14 @@ A production-grade web crawler application that indexes websites (sitemap), PDFs
 - **Password hashing** - bcrypt-based password security
 - **HTTP-only tokens** - prevents XSS attacks
 
+### Audit & Logging
+- **Comprehensive audit trail** - all user actions logged to separate database
+- **Action tracking** - user actions, login attempts, crawler changes
+- **Error logging** - failed operations with error details
+- **Application state persistence** - settings survive server restarts
+- **CLI audit viewer** - `python3 view_audit_logs.py` to view logs
+- See [AUDIT_SYSTEM.md](AUDIT_SYSTEM.md) for complete audit documentation
+
 ## Architecture
 
 ```
@@ -159,6 +167,13 @@ Once running, visit `/docs` for interactive Swagger documentation.
 - `DELETE /api/admin/indices/{name}` - Delete index
 - `POST /api/admin/indices/{name}/reindex` - Reindex from collection
 - `GET /api/admin/collections` - List collections
+
+**Audit Logging** (NEW)
+- `GET /api/audit` - View all audit logs (admin only)
+- `GET /api/audit/user/{user_id}` - View user's audit logs
+- `GET /api/audit/actions/summary` - Action statistics (admin only)
+- `GET /api/audit/state/{key}` - Get application state
+- `POST /api/audit/state/{key}` - Save application state (admin only)
 
 ## Configuration
 
