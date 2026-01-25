@@ -16,53 +16,10 @@ class OpenSearchClient:
         """Initialize OpenSearch connection."""
         auth = None
         
-        # Check if using AWS OpenSearch (has AWS_REGION environment variable or AWS credentials)
-        use_aws_auth = (
-            'search-' in settings.OPENSEARCH_HOST and 
-            '.es.amazonaws.com' in settings.OPENSEARCH_HOST
-        )
-        
-        if use_aws_auth:
-            # Use AWS Signature Version 4 authentication for AWS OpenSearch
-            try:
-                from opensearchpy import AWSV4SignerAuth
-                import boto3
-                
-                # Use default AWS credentials from environment/IAM role
-                credentials = boto3.Session().get_credentials()
-                region = settings.OPENSEARCH_HOST.split('.')[2]  # Extract region from hostname
-                
-                auth = AWSV4SignerAuth(credentials, region, 'es')
-                
-                self.client = OpenSearch(
-                    hosts=[{
-                        'host': settings.OPENSEARCH_HOST,
-                        'port': settings.OPENSEARCH_PORT,
-                        'scheme': settings.OPENSEARCH_SCHEME
-                    }],
-                    auth=auth,
-                    verify_certs=settings.OPENSEARCH_VERIFY_CERTS,
-                    ssl_show_warn=False
-                )
-            except ImportError:
-                # Fallback to basic auth if AWS auth not available
-                if settings.OPENSEARCH_USER and settings.OPENSEARCH_PASSWORD:
-                    auth = (settings.OPENSEARCH_USER, settings.OPENSEARCH_PASSWORD)
-                
-                self.client = OpenSearch(
-                    hosts=[{
-                        'host': settings.OPENSEARCH_HOST,
-                        'port': settings.OPENSEARCH_PORT,
-                        'scheme': settings.OPENSEARCH_SCHEME
-                    }],
-                    basic_auth=auth,
-                    verify_certs=settings.OPENSEARCH_VERIFY_CERTS,
-                    ssl_show_warn=False
-                )
-        else:
-            # Local OpenSearch or basic auth
-            if settings.OPENSEARCH_USER and settings.OPENSEARCH_PASSWORD:
-                auth = (settings.OPENSEARCH_USER, settings.OPENSEARCH_PASSWORD)
+        # Check if master user credentials are provided (preferred for AWS OpenSearch)
+        if settings.OPENSEARCH_USER and settings.OPENSEARCH_PASSWORD:
+            # Use basic auth with master user credentials
+            auth = (settings.OPENSEARCH_USER, settings.OPENSEARCH_PASSWORD)
             
             self.client = OpenSearch(
                 hosts=[{
@@ -73,6 +30,57 @@ class OpenSearchClient:
                 basic_auth=auth,
                 verify_certs=settings.OPENSEARCH_VERIFY_CERTS,
                 ssl_show_warn=False
+            )
+        else:
+            # No credentials provided, try AWS Signature Version 4 authentication
+            use_aws_auth = (
+                'search-' in settings.OPENSEARCH_HOST and 
+                '.es.amazonaws.com' in settings.OPENSEARCH_HOST
+            )
+            
+            if use_aws_auth:
+                # Use AWS Signature Version 4 authentication for AWS OpenSearch
+                try:
+                    from opensearchpy import AWSV4SignerAuth
+                    import boto3
+                    
+                    # Use default AWS credentials from environment/IAM role
+                    credentials = boto3.Session().get_credentials()
+                    region = settings.OPENSEARCH_HOST.split('.')[2]  # Extract region from hostname
+                    
+                    auth = AWSV4SignerAuth(credentials, region, 'es')
+                    
+                    self.client = OpenSearch(
+                        hosts=[{
+                            'host': settings.OPENSEARCH_HOST,
+                            'port': settings.OPENSEARCH_PORT,
+                            'scheme': settings.OPENSEARCH_SCHEME
+                        }],
+                        auth=auth,
+                        verify_certs=settings.OPENSEARCH_VERIFY_CERTS,
+                        ssl_show_warn=False
+                    )
+                except (ImportError, Exception):
+                    # Fallback to connection without auth if AWS auth fails
+                    self.client = OpenSearch(
+                        hosts=[{
+                            'host': settings.OPENSEARCH_HOST,
+                            'port': settings.OPENSEARCH_PORT,
+                            'scheme': settings.OPENSEARCH_SCHEME
+                        }],
+                        verify_certs=settings.OPENSEARCH_VERIFY_CERTS,
+                        ssl_show_warn=False
+                    )
+            else:
+                # Local OpenSearch without auth
+                self.client = OpenSearch(
+                    hosts=[{
+                        'host': settings.OPENSEARCH_HOST,
+                        'port': settings.OPENSEARCH_PORT,
+                        'scheme': settings.OPENSEARCH_SCHEME
+                    }],
+                    verify_certs=settings.OPENSEARCH_VERIFY_CERTS,
+                    ssl_show_warn=False
             )
     
     def create_index(self, index_name: str, force: bool = False) -> bool:
