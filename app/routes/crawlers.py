@@ -7,6 +7,7 @@ from app.models import CrawlerConfig, get_db
 from app.schemas import CrawlerConfigCreate, CrawlerConfigUpdate, CrawlerConfigResponse
 from app.auth import require_editor, get_current_user
 from app.models import User
+from app.audit import log_action
 
 router = APIRouter()
 
@@ -110,6 +111,26 @@ async def create_crawler(
     db.commit()
     db.refresh(crawler)
     
+    # Log the action
+    try:
+        log_action(
+            user_id=current_user.id,
+            username=current_user.username,
+            action="crawler_created",
+            resource_type="crawler",
+            resource_id=str(crawler.id),
+            resource_name=crawler.name,
+            details={
+                "seed_urls": crawler.seed_urls,
+                "max_depth": crawler.max_depth,
+                "enabled": crawler.enabled
+            },
+            status="success"
+        )
+    except Exception as e:
+        # Don't fail the request if audit logging fails
+        print(f"Audit log error: {e}")
+    
     return CrawlerConfigResponse.from_orm(crawler)
 
 
@@ -167,3 +188,21 @@ async def delete_crawler(
     
     db.delete(crawler)
     db.commit()
+    
+    # Log the action
+    try:
+        log_action(
+            user_id=current_user.id,
+            username=current_user.username,
+            action="crawler_deleted",
+            resource_type="crawler",
+            resource_id=str(crawler_id),
+            resource_name=crawler.name,
+            details={
+                "seed_urls": crawler.seed_urls
+            },
+            status="success"
+        )
+    except Exception as e:
+        # Don't fail the request if audit logging fails
+        print(f"Audit log error: {e}")

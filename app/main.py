@@ -32,7 +32,7 @@ os.makedirs(settings.COLLECTIONS_PATH, exist_ok=True)
 os.makedirs(settings.LOGS_PATH, exist_ok=True)
 
 # Import routes
-from app.routes import auth, crawlers, jobs, search, admin
+from app.routes import auth, crawlers, jobs, search, admin, audit
 
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["authentication"])
@@ -40,6 +40,7 @@ app.include_router(crawlers.router, prefix="/api/crawlers", tags=["crawlers"])
 app.include_router(jobs.router, prefix="/api/jobs", tags=["jobs"])
 app.include_router(search.router, prefix="/api/search", tags=["search"])
 app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
+app.include_router(audit.router, prefix="/api/audit", tags=["audit"])
 
 # Serve frontend static files
 frontend_path = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'public')

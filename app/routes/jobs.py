@@ -4,10 +4,11 @@ from fastapi import APIRouter, HTTPException, status, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime
-from app.models import CrawlJob, CrawlerConfig, get_db
+from app.models import CrawlJob, CrawlerConfig, get_db, SessionLocal
 from app.schemas import CrawlJobResponse, CrawlJobDetailResponse
 from app.auth import require_editor, get_current_user
 from app.models import User
+from app.audit import log_action
 import asyncio
 import threading
 
@@ -15,6 +16,25 @@ router = APIRouter()
 
 # In-memory job tracking (in production, use database)
 active_jobs = {}
+
+
+@router.get("", response_model=List[CrawlJobResponse])
+async def list_all_jobs(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    List all crawl jobs.
+    
+    Args:
+        db: Database session
+        current_user: Current user
+        
+    Returns:
+        List of all crawl jobs
+    """
+    jobs = db.query(CrawlJob).order_by(CrawlJob.created_at.desc()).all()
+    return [CrawlJobResponse.from_orm(j) for j in jobs]
 
 
 @router.get("/{config_id}", response_model=List[CrawlJobResponse])
@@ -101,6 +121,25 @@ async def start_crawl_job(
     db.commit()
     db.refresh(job)
     
+    # Log the action
+    try:
+        log_action(
+            user_id=current_user.id,
+            username=current_user.username,
+            action="crawl_job_started",
+            resource_type="crawl_job",
+            resource_id=str(job.id),
+            resource_name=f"Job for {config.name}",
+            details={
+                "config_id": config_id,
+                "crawler_name": config.name
+            },
+            status="success"
+        )
+    except Exception as e:
+        # Don't fail the request if audit logging fails
+        print(f"Audit log error: {e}")
+    
     # Schedule background task
     background_tasks.add_task(execute_crawl_job, job.id, config_id)
     
@@ -158,33 +197,46 @@ async def execute_crawl_job(job_id: int, config_id: int):
         
         config = db.query(CrawlerConfig).filter(CrawlerConfig.id == config_id).first()
         if not config:
-            job.status = "failed"
-            job.error_details = {"error": "Config not found"}
-            db.commit()
+            if job:
+                job.status = "failed"
+                job.error_details = {"error": "Config not found"}
+                db.commit()
             return
         
         # Mock crawl execution
         # In production, this would execute the Scrapy crawler
         job.progress = 50
         job.urls_crawled = 100
+        job.status = "running"
         db.commit()
         
-        await asyncio.sleep(2)  # Simulate crawling
+        # Simulate crawling with sleep
+        import time
+        time.sleep(2)
         
-        job.progress = 100
-        job.documents_indexed = 100
-        job.status = "completed"
-        job.completed_at = datetime.utcnow()
-        job.logs = "Crawl completed successfully"
-        
-        db.commit()
+        # Refresh job from database
+        job = db.query(CrawlJob).filter(CrawlJob.id == job_id).first()
+        if job:
+            job.progress = 100
+            job.documents_indexed = 100
+            job.status = "completed"
+            job.completed_at = datetime.utcnow()
+            job.logs = "Crawl completed successfully"
+            db.commit()
         
     except Exception as e:
-        if job:
-            job.status = "failed"
-            job.error_details = {"error": str(e)}
-            job.completed_at = datetime.utcnow()
-            db.commit()
+        try:
+            job = db.query(CrawlJob).filter(CrawlJob.id == job_id).first()
+            if job:
+                job.status = "failed"
+                job.error_details = {"error": str(e)}
+                job.completed_at = datetime.utcnow()
+                db.commit()
+        except:
+            pass
     
     finally:
-        db.close()
+        try:
+            db.close()
+        except:
+            pass

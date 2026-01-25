@@ -8,10 +8,12 @@ from app.schemas import SearchQuery, SearchResult
 from app.auth import get_current_user
 from app.models import User
 from app.opensearch_client import get_opensearch_client
+from app.audit import log_action
 
 router = APIRouter()
 
 
+@router.post("", response_model=Dict[str, Any])
 @router.post("/", response_model=Dict[str, Any])
 async def search_documents(
     search_query: SearchQuery,
@@ -70,6 +72,24 @@ async def search_documents(
         }
     
     except Exception as e:
+        # Log failed search
+        try:
+            log_action(
+                user_id=current_user.id,
+                username=current_user.username,
+                action="search_executed",
+                resource_type="search",
+                resource_id="",
+                details={
+                    "query": search_query.q,
+                    "content_type": search_query.content_type
+                },
+                status="error",
+                error_message=str(e)
+            )
+        except:
+            pass
+        
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Search error: {str(e)}"

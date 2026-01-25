@@ -261,6 +261,21 @@ const appState = {
         }
     },
 
+    editCrawler(crawlerId) {
+        // Find the crawler
+        const crawlers = Array.from(document.getElementById('crawlers-list').querySelectorAll('tr'));
+        const crawlerRow = crawlers.find(row => row.cells[0].textContent.includes(`Crawler ${crawlerId}`) || row.cells[0].textContent.length > 0);
+        
+        if (!crawlerRow) {
+            this.showError('Crawler not found');
+            return;
+        }
+
+        // For now, show a message that edit is coming soon
+        // In a full implementation, you would load the crawler data and populate the form
+        this.showError('Edit functionality will be available soon. Please delete and recreate the crawler to modify it.');
+    },
+
     async deleteCrawler(crawlerId) {
         if (!confirm('Delete this crawler? This cannot be undone.')) return;
 
@@ -276,11 +291,28 @@ const appState = {
     // Jobs Management
     async loadJobs() {
         try {
-            // In production, fetch actual jobs from API
+            const jobs = await this.apiCall('/api/jobs', 'GET');
             const list = document.getElementById('jobs-list');
-            list.innerHTML = '<tr><td colspan="7" style="text-align: center;">No jobs yet</td></tr>';
+            
+            if (jobs.length === 0) {
+                list.innerHTML = '<tr><td colspan="7" style="text-align: center;">No jobs yet</td></tr>';
+                return;
+            }
+
+            list.innerHTML = jobs.map(j => `
+                <tr>
+                    <td>${j.id}</td>
+                    <td>${j.config_id}</td>
+                    <td><span class="badge badge-${j.status}">${j.status.toUpperCase()}</span></td>
+                    <td>${j.progress}%</td>
+                    <td>${j.urls_crawled}</td>
+                    <td>${j.documents_indexed}</td>
+                    <td>${j.started_at ? new Date(j.started_at).toLocaleString() : '-'}</td>
+                </tr>
+            `).join('');
         } catch (e) {
             console.error('Error loading jobs:', e);
+            this.showError('Failed to load jobs: ' + e.message);
         }
     },
 
@@ -300,8 +332,8 @@ const appState = {
             });
 
             const results = document.getElementById('search-results-list');
-            if (response.results.length === 0) {
-                results.innerHTML = '<p>No results found</p>';
+            if (!response.results || response.results.length === 0) {
+                results.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">No results found (OpenSearch may not be running or no documents indexed)</p>';
                 return;
             }
 
@@ -314,7 +346,7 @@ const appState = {
                 </div>
             `).join('');
         } catch (e) {
-            this.showError(e.message);
+            this.showError('Search failed: ' + (e.message || 'OpenSearch not available'));
         }
     },
 
@@ -392,8 +424,8 @@ const appState = {
             const response = await this.apiCall('/api/search/indices', 'GET');
             const list = document.getElementById('indices-list');
 
-            if (response.indices.length === 0) {
-                list.innerHTML = '<tr><td colspan="4" style="text-align: center;">No indices</td></tr>';
+            if (!response.indices || response.indices.length === 0) {
+                list.innerHTML = '<tr><td colspan="4" style="text-align: center;">No indices found (OpenSearch may not be running)</td></tr>';
                 return;
             }
 
@@ -409,6 +441,8 @@ const appState = {
                 </tr>
             `).join('');
         } catch (e) {
+            const list = document.getElementById('indices-list');
+            list.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--danger-color);">Error loading indices: OpenSearch not available</td></tr>';
             console.error('Error loading indices:', e);
         }
     },
@@ -418,7 +452,7 @@ const appState = {
             const response = await this.apiCall('/api/admin/collections', 'GET');
             const list = document.getElementById('collections-list');
 
-            if (response.collections.length === 0) {
+            if (!response.collections || response.collections.length === 0) {
                 list.innerHTML = '<tr><td colspan="5" style="text-align: center;">No collections</td></tr>';
                 return;
             }
@@ -435,6 +469,8 @@ const appState = {
                 </tr>
             `).join('');
         } catch (e) {
+            const list = document.getElementById('collections-list');
+            list.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--danger-color);">Error loading collections</td></tr>';
             console.error('Error loading collections:', e);
         }
     },
@@ -512,11 +548,43 @@ const appState = {
         if (errorEl) {
             errorEl.textContent = message;
             errorEl.classList.remove('hidden');
+        } else {
+            // Show error for logged-in users
+            this.showNotification(message, 'error');
         }
     },
 
     showSuccess(message) {
-        alert(message); // Simple notification - enhance in production
+        this.showNotification(message, 'success');
+    },
+
+    showNotification(message, type = 'info') {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.textContent = message;
+        notification.style.cssText = `
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            padding: 1rem 1.5rem;
+            background: ${type === 'error' ? '#ef4444' : type === 'success' ? '#10b981' : '#06b6d4'};
+            color: white;
+            border-radius: 8px;
+            box-shadow: var(--shadow-lg);
+            z-index: 10000;
+            max-width: 400px;
+            word-wrap: break-word;
+            animation: slideIn 0.3s ease;
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Auto remove after 4 seconds
+        setTimeout(() => {
+            notification.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => notification.remove(), 300);
+        }, 4000);
     }
 };
 
