@@ -148,7 +148,8 @@ async def execute_crawl_job(job_id: int, config_id: int):
         job_id: Job ID
         config_id: Crawler config ID
     """
-    db = Session()
+    db = SessionLocal()
+    job = None
     
     try:
         job = db.query(CrawlJob).filter(CrawlJob.id == job_id).first()
@@ -179,10 +180,11 @@ async def execute_crawl_job(job_id: int, config_id: int):
         db.commit()
         
     except Exception as e:
-        job.status = "failed"
-        job.error_details = {"error": str(e)}
-        job.completed_at = datetime.utcnow()
-        db.commit()
+        if job:
+            job.status = "failed"
+            job.error_details = {"error": str(e)}
+            job.completed_at = datetime.utcnow()
+            db.commit()
     
     finally:
         db.close()
