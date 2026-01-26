@@ -45,7 +45,18 @@ A production-grade web crawler application that indexes websites (sitemap), PDFs
 - **Error logging** - failed operations with error details
 - **Application state persistence** - settings survive server restarts
 - **CLI audit viewer** - `python3 view_audit_logs.py` to view logs
-- See [AUDIT_SYSTEM.md](AUDIT_SYSTEM.md) for complete audit documentation
+- See [AUDIT_SYSTEM.md](docs/AUDIT_SYSTEM.md) for complete audit documentation
+
+## Documentation
+
+For detailed documentation, see the [docs/](docs/) folder:
+- [QUICKSTART.md](docs/QUICKSTART.md) - Get started quickly
+- [AUDIT_SYSTEM.md](docs/AUDIT_SYSTEM.md) - Complete audit logging documentation
+- [AWS_OPENSEARCH.md](docs/AWS_OPENSEARCH.md) - AWS OpenSearch integration and setup
+- [API.md](docs/API.md) - Complete API reference
+- [IMPLEMENTATION.md](docs/IMPLEMENTATION.md) - Implementation details
+- [EXAMPLES.md](docs/EXAMPLES.md) - Usage examples
+- [COMPLETION.md](docs/COMPLETION.md) - Project completion status
 
 ## Architecture
 
@@ -133,6 +144,15 @@ After initialization, use these credentials to log in:
 | admin | admin123 | Admin |
 | editor | editor123 | Editor |
 | viewer | viewer123 | Viewer |
+
+## Tools & Utilities
+
+The `tools/` directory contains utility scripts:
+
+- **view_audit_logs.py** - CLI tool to view audit logs
+  ```bash
+  python3 tools/view_audit_logs.py
+  ```
 
 ## API Documentation
 

@@ -5,6 +5,7 @@ from scrapy.http import HtmlResponse
 from urllib.parse import urljoin, urlparse
 from typing import Optional, List
 import xml.etree.ElementTree as ET
+import json
 
 
 class SitemapSpider(scrapy.Spider):
@@ -15,18 +16,29 @@ class SitemapSpider(scrapy.Spider):
     name = 'sitemap'
     allowed_domains = []
     
-    def __init__(self, config: dict, *args, **kwargs):
+    def __init__(self, config: str = None, job_id: int = None, *args, **kwargs):
         """
         Initialize spider with crawler configuration.
         
         Args:
-            config: Crawler configuration dict with seed_urls, allowed_domains, etc.
+            config: JSON string with crawler configuration
+            job_id: Job ID for tracking
         """
         super().__init__(*args, **kwargs)
-        self.config = config
-        self.allowed_domains = config.get('allow_domains', [])
-        self.seed_urls = config.get('seed_urls', [])
-        self.max_depth = config.get('max_depth', 2)
+        
+        # Parse config from command line
+        if isinstance(config, str):
+            try:
+                self.config = json.loads(config)
+            except:
+                self.config = {}
+        else:
+            self.config = config or {}
+        
+        self.job_id = job_id
+        self.allowed_domains = self.config.get('allow_domains', [])
+        self.seed_urls = self.config.get('seed_urls', [])
+        self.max_depth = self.config.get('max_depth', 2)
         self.current_depth = 0
     
     def start_requests(self):
@@ -149,13 +161,23 @@ class GenericSpider(scrapy.Spider):
     name = 'generic'
     allowed_domains = []
     
-    def __init__(self, config: dict, *args, **kwargs):
+    def __init__(self, config: str = None, job_id: int = None, *args, **kwargs):
         """Initialize spider with configuration."""
         super().__init__(*args, **kwargs)
-        self.config = config
-        self.allowed_domains = config.get('allow_domains', [])
-        self.seed_urls = config.get('seed_urls', [])
-        self.max_depth = config.get('max_depth', 2)
+        
+        # Parse config from command line
+        if isinstance(config, str):
+            try:
+                self.config = json.loads(config)
+            except:
+                self.config = {}
+        else:
+            self.config = config or {}
+        
+        self.job_id = job_id
+        self.allowed_domains = self.config.get('allow_domains', [])
+        self.seed_urls = self.config.get('seed_urls', [])
+        self.max_depth = self.config.get('max_depth', 2)
     
     def start_requests(self):
         """Generate initial requests."""

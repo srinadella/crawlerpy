@@ -30,40 +30,42 @@ async def get_system_stats(
     """
     opensearch = get_opensearch_client()
     
+    # Check OpenSearch connection (non-blocking)
+    opensearch_connected = False
     try:
-        # Check OpenSearch connection
         opensearch_connected = opensearch.check_connection()
-        
-        # Count crawlers
-        from app.models import CrawlerConfig, CrawlJob
+    except Exception as os_error:
+        opensearch_connected = False
+        # Continue with other stats even if OpenSearch fails
+    
+    # Always count from database regardless of OpenSearch status
+    from app.models import CrawlerConfig, CrawlJob
+    try:
         crawler_count = db.query(CrawlerConfig).count()
         job_count = db.query(CrawlJob).count()
         user_count = db.query(User).count()
-        
-        # Get storage info
-        storage_used = 0
+    except Exception as db_error:
+        crawler_count = 0
+        job_count = 0
+        user_count = 0
+    
+    # Get storage info
+    storage_used = 0
+    try:
         if os.path.exists(settings.COLLECTIONS_PATH):
             for root, dirs, files in os.walk(settings.COLLECTIONS_PATH):
                 for file in files:
                     storage_used += os.path.getsize(os.path.join(root, file))
-        
-        return {
-            "opensearch_connected": opensearch_connected,
-            "crawler_count": crawler_count,
-            "job_count": job_count,
-            "user_count": user_count,
-            "storage_used_mb": round(storage_used / (1024 * 1024), 2)
-        }
+    except Exception as storage_error:
+        storage_used = 0
     
-    except Exception as e:
-        return {
-            "opensearch_connected": False,
-            "crawler_count": 0,
-            "job_count": 0,
-            "user_count": 0,
-            "storage_used_mb": 0,
-            "error": str(e)
-        }
+    return {
+        "opensearch_connected": opensearch_connected,
+        "crawler_count": crawler_count,
+        "job_count": job_count,
+        "user_count": user_count,
+        "storage_used_mb": round(storage_used / (1024 * 1024), 2)
+    }
 
 
 @router.get("/opensearch/health")

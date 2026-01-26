@@ -9,6 +9,7 @@ from app.schemas import CrawlJobResponse, CrawlJobDetailResponse
 from app.auth import require_editor, get_current_user
 from app.models import User
 from app.audit import log_action
+from app.crawler_executor import CrawlerExecutor
 import asyncio
 import threading
 
@@ -181,7 +182,7 @@ async def stop_crawl_job(
 
 async def execute_crawl_job(job_id: int, config_id: int):
     """
-    Execute crawl job in background.
+    Execute crawl job in background using Scrapy.
     
     Args:
         job_id: Job ID
@@ -203,29 +204,34 @@ async def execute_crawl_job(job_id: int, config_id: int):
                 db.commit()
             return
         
-        # Mock crawl execution
-        # In production, this would execute the Scrapy crawler
-        job.progress = 50
-        job.urls_crawled = 100
+        # Prepare config dict from database model
+        config_dict = {
+            'seed_urls': config.seed_urls or [],
+            'allowed_domains': config.allow_domains or [],
+            'url_patterns_include': config.url_patterns_include or [],
+            'url_patterns_exclude': config.url_patterns_exclude or [],
+            'max_depth': config.max_depth or 2,
+            'extract_pdfs': config.extract_pdfs or True,
+            'extract_docx': config.extract_docx or True,
+            'opensearch_index_name': config.opensearch_index_name or 'documents',
+            'use_sitemap': config.follow_sitemap if config.follow_sitemap is not None else True,
+            'concurrent_requests': config.concurrent_requests or 16,
+            'download_delay': config.download_delay or 1,
+        }
+        
+        # Update job status to running
         job.status = "running"
+        job.progress = 5
         db.commit()
+        db.close()
         
-        # Simulate crawling with sleep
-        import time
-        time.sleep(2)
-        
-        # Refresh job from database
-        job = db.query(CrawlJob).filter(CrawlJob.id == job_id).first()
-        if job:
-            job.progress = 100
-            job.documents_indexed = 100
-            job.status = "completed"
-            job.completed_at = datetime.utcnow()
-            job.logs = "Crawl completed successfully"
-            db.commit()
+        # Execute crawler
+        executor = CrawlerExecutor(config_dict, job_id)
+        result = executor.execute()
         
     except Exception as e:
         try:
+            db = SessionLocal()
             job = db.query(CrawlJob).filter(CrawlJob.id == job_id).first()
             if job:
                 job.status = "failed"
@@ -234,6 +240,11 @@ async def execute_crawl_job(job_id: int, config_id: int):
                 db.commit()
         except:
             pass
+        finally:
+            try:
+                db.close()
+            except:
+                pass
     
     finally:
         try:

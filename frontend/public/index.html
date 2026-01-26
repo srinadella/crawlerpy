@@ -710,19 +710,19 @@
                     <div class="card">
                         <div class="card-title">Dashboard</div>
                         <div class="grid">
-                            <div class="stat-box">
+                            <div class="stat-box" onclick="appState.navigate('crawlers')" style="cursor: pointer;">
                                 <div class="stat-value" id="crawler-count">0</div>
                                 <div class="stat-label">Crawlers</div>
                             </div>
-                            <div class="stat-box">
+                            <div class="stat-box" onclick="appState.navigate('jobs')" style="cursor: pointer;">
                                 <div class="stat-value" id="job-count">0</div>
                                 <div class="stat-label">Jobs</div>
                             </div>
-                            <div class="stat-box">
+                            <div class="stat-box" onclick="appState.navigate('admin')" style="cursor: pointer;">
                                 <div class="stat-value" id="user-count">0</div>
                                 <div class="stat-label">Users</div>
                             </div>
-                            <div class="stat-box">
+                            <div class="stat-box" style="cursor: default;">
                                 <div class="stat-value" id="storage-used">0 MB</div>
                                 <div class="stat-label">Storage</div>
                             </div>
